@@ -1,8 +1,12 @@
 package me.sniggle.pgp.crypt;
 
 import org.apache.commons.io.IOUtils;
+import org.bouncycastle.bcpg.ArmoredInputStream;
 import org.bouncycastle.bcpg.ArmoredOutputStream;
+import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags;
 import org.bouncycastle.openpgp.*;
+import org.bouncycastle.openpgp.operator.PBESecretKeyDecryptor;
+import org.bouncycastle.openpgp.operator.bc.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,8 +46,8 @@ public class PGPEncryptor implements Encryptor {
   }
 
   private OutputStream wrapInEncryptedDataStream(PGPPublicKey publicKey, OutputStream out) throws NoSuchProviderException, PGPException, IOException {
-    PGPEncryptedDataGenerator encryptedDataGenerator = new PGPEncryptedDataGenerator(getEncryptionAlgorithm(), getSecureRandom(), "BC");
-    encryptedDataGenerator.addMethod(publicKey);
+    PGPEncryptedDataGenerator encryptedDataGenerator = new PGPEncryptedDataGenerator(new BcPGPDataEncryptorBuilder(getEncryptionAlgorithm()));
+    encryptedDataGenerator.addMethod(new BcPublicKeyKeyEncryptionMethodGenerator(publicKey));
     return encryptedDataGenerator.open(out, new byte[4096]);
   }
 
@@ -54,7 +58,7 @@ public class PGPEncryptor implements Encryptor {
   protected PGPPublicKeyRing readPublicKeyRing(InputStream publicKey) {
     PGPPublicKeyRing result = null;
     try( InputStream decoderStream = PGPUtil.getDecoderStream(publicKey) ) {
-      PGPObjectFactory pgpObjectFactory = new PGPObjectFactory(decoderStream);
+      PGPObjectFactory pgpObjectFactory = new PGPObjectFactory(decoderStream, new BcKeyFingerprintCalculator());
       Object o = null;
       while( (o = pgpObjectFactory.nextObject()) != null && result == null ) {
         if( o instanceof PGPPublicKeyRing ) {
@@ -106,36 +110,81 @@ public class PGPEncryptor implements Encryptor {
     boolean result = true;
     PGPPublicKey pgpPublicKey = readEncryptionKeyFromKeyRing(readPublicKeyRing(publicKey));
     if( pgpPublicKey != null ) {
-      try( OutputStream wrappedTargetStream = wrapTargetStream(target, inputDataName, pgpPublicKey) ) {
-        IOUtils.copy(inputData, wrappedTargetStream);
-      } catch (IOException | PGPException | NoSuchProviderException e) {
-        e.printStackTrace();
-        result &= false;
-      }
-/*
-      try (ArmoredOutputStream armoredOutputStream = new ArmoredOutputStream(target)) {
-        PGPEncryptedDataGenerator dataGenerator = new PGPEncryptedDataGenerator(getEncryptionAlgorithm(), getSecureRandom(), "BC");
-        dataGenerator.addMethod(pgpPublicKey);
-        try( OutputStream encryptedDataStream = dataGenerator.open(armoredOutputStream, new byte[4096]) ) {
-          PGPCompressedDataGenerator compressedDataGenerator = new PGPCompressedDataGenerator(getCompressionAlgorithm());
-          try( OutputStream compressedDataStream = compressedDataGenerator.open(encryptedDataStream) ) {
-            PGPLiteralDataGenerator literalDataGenerator = new PGPLiteralDataGenerator();
-            try( OutputStream literalDataStream = literalDataGenerator.open(compressedDataStream, PGPLiteralDataGenerator.UTF8, inputDataName, new Date(), new byte[4096]) ) {
+      try( OutputStream wrappedTargetStream = new ArmoredOutputStream(target) ) {
+        PGPEncryptedDataGenerator encryptedDataGenerator = new PGPEncryptedDataGenerator(new BcPGPDataEncryptorBuilder(getEncryptionAlgorithm()));
+        encryptedDataGenerator.addMethod(new BcPublicKeyKeyEncryptionMethodGenerator(pgpPublicKey));
+        try( OutputStream encryptedDataStream = encryptedDataGenerator.open(wrappedTargetStream, new byte[4096]) ) {
+          try( OutputStream compressedDataStream = new PGPCompressedDataGenerator(getCompressionAlgorithm()).open(encryptedDataStream) ) {
+            try( OutputStream literalDataStream = new PGPLiteralDataGenerator().open(compressedDataStream, PGPLiteralDataGenerator.UTF8, inputDataName, new Date(), new byte[4096]) ) {
               IOUtils.copy(inputData, literalDataStream);
             }
           }
         }
-      } catch (IOException | PGPException | NoSuchProviderException e) {
+      } catch (IOException | PGPException e) {
         e.printStackTrace();
         result &= false;
       }
-      */
     }
     return result;
   }
 
+  private PGPPrivateKey findPrivateKey(InputStream secretKey, PGPEncryptedData encryptedData, String password) throws PGPException, IOException {
+    PGPSecretKeyRingCollection keyRingCollection = new PGPSecretKeyRingCollection(secretKey, new BcKeyFingerprintCalculator());
+    PGPSecretKey pgpSecretKey = keyRingCollection.getSecretKey(((PGPPublicKeyEncryptedData)encryptedData).getKeyID());
+    PBESecretKeyDecryptor pbeSecretKeyDecryptor = new BcPBESecretKeyDecryptorBuilder(new BcPGPDigestCalculatorProvider()).build(password.toCharArray());
+    return pgpSecretKey.extractPrivateKey(pbeSecretKeyDecryptor);
+  }
+
   @Override
-  public boolean decrypt(InputStream privateKey, InputStream encryptedData, OutputStream plainText) {
-    return false;
+  public boolean decrypt(String password, InputStream privateKey, InputStream encryptedData, OutputStream plainText) {
+    boolean result = true;
+    try {
+      try( InputStream in = PGPUtil.getDecoderStream(encryptedData) ) {
+        PGPObjectFactory objectFactory = new PGPObjectFactory(in, new BcKeyFingerprintCalculator());
+        PGPEncryptedDataList dataList;
+
+        Object firstObject = objectFactory.nextObject();
+        if( firstObject instanceof PGPEncryptedDataList ) {
+          dataList = (PGPEncryptedDataList)firstObject;
+        } else {
+          dataList = (PGPEncryptedDataList)objectFactory.nextObject();
+        }
+        Iterator<PGPEncryptedData> iterator = dataList.getEncryptedDataObjects();
+        PGPPrivateKey pgpPrivateKey = null;
+        PGPEncryptedData pgpEncryptedData = null;
+        while( pgpPrivateKey == null && ((pgpEncryptedData = iterator.next()) != null) ) {
+          pgpPrivateKey = findPrivateKey(privateKey, pgpEncryptedData, password);
+        }
+        try( InputStream clearText = ((PGPPublicKeyEncryptedData)pgpEncryptedData).getDataStream(new BcPublicKeyDataDecryptorFactory(pgpPrivateKey))) {
+          PGPObjectFactory clearFacts = new PGPObjectFactory(clearText, new BcKeyFingerprintCalculator());
+          Object message = clearFacts.nextObject();
+          if( message instanceof PGPCompressedData ) {
+            PGPCompressedData compressedData = (PGPCompressedData) message;
+            message = new PGPObjectFactory(compressedData.getDataStream(), new BcKeyFingerprintCalculator()).nextObject();
+          }
+          if( message instanceof PGPLiteralData ) {
+            PGPLiteralData literalData = (PGPLiteralData) message;
+            try( InputStream literalDataStream = literalData.getInputStream() ) {
+              IOUtils.copy(literalDataStream, plainText);
+            }
+          } else if( message instanceof PGPOnePassSignatureList ) {
+
+          } else {
+
+          }
+          if( pgpEncryptedData.isIntegrityProtected() ) {
+            if( pgpEncryptedData.verify() ) {
+
+            } else {
+
+            }
+          }
+        }
+      }
+    } catch (IOException | PGPException e) {
+      e.printStackTrace();
+      result &= false;
+    }
+    return result;
   }
 }

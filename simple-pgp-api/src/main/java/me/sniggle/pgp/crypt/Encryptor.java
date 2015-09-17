@@ -10,6 +10,6 @@ public interface Encryptor {
 
   boolean encrypt(InputStream publicKey, String inputDataName, InputStream inputData, OutputStream target);
 
-  boolean decrypt(InputStream privateKey, InputStream encryptedData, OutputStream plainText);
+  boolean decrypt(String password, InputStream privateKey, InputStream encryptedData, OutputStream plainText);
 
 }

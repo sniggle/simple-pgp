@@ -2,14 +2,21 @@ package me.sniggle.pgp.crypt;
 
 import me.sniggle.pgp.crypt.internal.BaseKeyPairGenerator;
 import org.bouncycastle.bcpg.ArmoredOutputStream;
+import org.bouncycastle.bcpg.HashAlgorithmTags;
 import org.bouncycastle.bcpg.sig.KeyFlags;
+import org.bouncycastle.crypto.generators.RSAKeyPairGenerator;
+import org.bouncycastle.crypto.params.RSAKeyGenerationParameters;
 import org.bouncycastle.openpgp.*;
+import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyEncryptorBuilder;
+import org.bouncycastle.openpgp.operator.bc.BcPGPContentSignerBuilder;
+import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider;
+import org.bouncycastle.openpgp.operator.bc.BcPGPKeyPair;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
+import java.math.BigInteger;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Date;
 
 /**
@@ -23,10 +30,10 @@ public class PGPKeyPairGenerator extends BaseKeyPairGenerator {
   private PGPKeyRingGenerator createKeyRingGenerator(String id, String password, int keySize) {
     PGPKeyRingGenerator generator = null;
     try {
-      java.security.KeyPairGenerator keyPairGenerator = java.security.KeyPairGenerator.getInstance(KEY_ALGORITHM);
-      keyPairGenerator.initialize(keySize, getSecureRandom());
-      PGPKeyPair signingKeyPair = new PGPKeyPair(getSigningKeyType(), keyPairGenerator.generateKeyPair(), new Date());
-      PGPKeyPair encryptionKeyPair = new PGPKeyPair(getEncryptionKeyType(), keyPairGenerator.generateKeyPair(), new Date());
+      RSAKeyPairGenerator generator1 = new RSAKeyPairGenerator();
+      generator1.init(new RSAKeyGenerationParameters(BigInteger.valueOf(0x10001), new SecureRandom(), keySize, 12));
+      BcPGPKeyPair signingKeyPair = new BcPGPKeyPair(PGPPublicKey.RSA_SIGN, generator1.generateKeyPair(), new Date());
+      BcPGPKeyPair encryptionKeyPair = new BcPGPKeyPair(PGPPublicKey.RSA_ENCRYPT, generator1.generateKeyPair(), new Date());
       PGPSignatureSubpacketGenerator signatureSubpacketGenerator = new PGPSignatureSubpacketGenerator();
       signatureSubpacketGenerator.setKeyFlags(false, KeyFlags.SIGN_DATA | KeyFlags.CERTIFY_OTHER);
       signatureSubpacketGenerator.setPreferredSymmetricAlgorithms(false, getPreferredEncryptionAlgorithms());
@@ -36,9 +43,9 @@ public class PGPKeyPairGenerator extends BaseKeyPairGenerator {
       PGPSignatureSubpacketGenerator encryptionSubpacketGenerator = new PGPSignatureSubpacketGenerator();
       encryptionSubpacketGenerator.setKeyFlags(false, KeyFlags.ENCRYPT_COMMS | KeyFlags.ENCRYPT_STORAGE);
 
-      generator = new PGPKeyRingGenerator(PGPSignature.POSITIVE_CERTIFICATION, signingKeyPair, id, getEncryptionAlgorithm(), password.toCharArray(), false, signatureSubpacketGenerator.generate(), null, new SecureRandom(), getProvider());
+      generator = new PGPKeyRingGenerator(PGPPublicKey.RSA_SIGN, signingKeyPair, id, new BcPGPDigestCalculatorProvider().get(HashAlgorithmTags.SHA1), signatureSubpacketGenerator.generate(), null, new BcPGPContentSignerBuilder(PGPPublicKey.RSA_SIGN, HashAlgorithmTags.SHA256), new BcPBESecretKeyEncryptorBuilder(getEncryptionAlgorithm()).build(password.toCharArray()));
       generator.addSubKey(encryptionKeyPair, encryptionSubpacketGenerator.generate(), null);
-    } catch (NoSuchProviderException | NoSuchAlgorithmException | PGPException e) {
+    } catch (PGPException e) {
       e.printStackTrace();
       generator = null;
     }
@@ -61,10 +68,14 @@ public class PGPKeyPairGenerator extends BaseKeyPairGenerator {
       result &= false;
     }
     try( OutputStream targetStream = new ArmoredOutputStream(secrectKey) ) {
-      secretKeyRing.encode(targetStream);
+      PGPSecretKeyRingCollection secretKeyRingCollection = new PGPSecretKeyRingCollection(Arrays.asList(secretKeyRing));
+      secretKeyRingCollection.encode(targetStream);
+      //secretKeyRing.encode(targetStream);
     } catch (IOException e) {
       e.printStackTrace();
       result &= false;
+    } catch (PGPException e) {
+      e.printStackTrace();
     }
     return result;
   }

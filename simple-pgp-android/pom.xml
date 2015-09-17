@@ -17,5 +17,9 @@
       <artifactId>pg</artifactId>
       <version>1.52.0.0</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-io</artifactId>
+    </dependency>
   </dependencies>
 </project>
