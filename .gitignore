@@ -3,6 +3,9 @@
 **/*.iml
 *.class
 
+**/src/main/resources/*.txt
+**/src/main/resources/*.asc
+
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
