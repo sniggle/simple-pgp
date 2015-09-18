@@ -129,10 +129,14 @@ public class PGPEncryptor implements Encryptor {
   }
 
   private PGPPrivateKey findPrivateKey(InputStream secretKey, PGPEncryptedData encryptedData, String password) throws PGPException, IOException {
-    PGPSecretKeyRingCollection keyRingCollection = new PGPSecretKeyRingCollection(secretKey, new BcKeyFingerprintCalculator());
-    PGPSecretKey pgpSecretKey = keyRingCollection.getSecretKey(((PGPPublicKeyEncryptedData)encryptedData).getKeyID());
-    PBESecretKeyDecryptor pbeSecretKeyDecryptor = new BcPBESecretKeyDecryptorBuilder(new BcPGPDigestCalculatorProvider()).build(password.toCharArray());
-    return pgpSecretKey.extractPrivateKey(pbeSecretKeyDecryptor);
+    PGPPrivateKey result = null;
+    try( InputStream armoredSecretKey = new ArmoredInputStream(secretKey) ) {
+      PGPSecretKeyRingCollection keyRingCollection = new PGPSecretKeyRingCollection(armoredSecretKey, new BcKeyFingerprintCalculator());
+      PGPSecretKey pgpSecretKey = keyRingCollection.getSecretKey(((PGPPublicKeyEncryptedData) encryptedData).getKeyID());
+      PBESecretKeyDecryptor pbeSecretKeyDecryptor = new BcPBESecretKeyDecryptorBuilder(new BcPGPDigestCalculatorProvider()).build(password.toCharArray());
+      result = pgpSecretKey.extractPrivateKey(pbeSecretKeyDecryptor);
+    }
+    return result;
   }
 
   @Override

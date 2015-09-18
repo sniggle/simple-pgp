@@ -8,6 +8,8 @@ import java.io.OutputStream;
  */
 public interface Signer {
 
+  boolean verifyMessage(InputStream publicKey, InputStream message);
+
   boolean signMessage(InputStream privateKey, InputStream message, OutputStream signedMessage);
 
 }
