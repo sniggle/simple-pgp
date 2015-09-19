@@ -3,6 +3,7 @@ package me.sniggle.pgp.crypt;
 import me.sniggle.pgp.crypt.internal.BasePGPCommon;
 import me.sniggle.pgp.crypt.internal.io.IOUtils;
 import org.bouncycastle.bcpg.ArmoredInputStream;
+import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.bcpg.BCPGOutputStream;
 import org.bouncycastle.bcpg.HashAlgorithmTags;
 import org.bouncycastle.openpgp.*;
@@ -32,19 +33,22 @@ public class PGPMessageSigner extends BasePGPCommon implements MessageSigner {
           Iterator<PGPSignature> signatureIterator = signatureList.iterator();
           while( signatureIterator.hasNext() ) {
             final PGPSignature signature = signatureIterator.next();
-            signature.init(new BcPGPContentVerifierBuilderProvider(), findPublicKey(publicKey, new KeyFilter<PGPPublicKey>() {
+            PGPPublicKey pgpPublicKey = findPublicKey(publicKey, new KeyFilter<PGPPublicKey>() {
               @Override
               public boolean accept(PGPPublicKey pgpKey) {
                 return pgpKey.getKeyID() == signature.getKeyID();
               }
-            }));
-            IOUtils.process(message, new IOUtils.StreamHandler() {
-              @Override
-              public void handleStreamBuffer(byte[] buffer, int offset, int length) throws IOException {
-                signature.update(buffer, offset, length);
-              }
             });
-            System.out.println(signature.verify());
+            if( pgpPublicKey != null ) {
+              signature.init(new BcPGPContentVerifierBuilderProvider(), pgpPublicKey);
+              IOUtils.process(message, new IOUtils.StreamHandler() {
+                @Override
+                public void handleStreamBuffer(byte[] buffer, int offset, int length) throws IOException {
+                  signature.update(buffer, offset, length);
+                }
+              });
+              result = signature.verify();
+            }
           }
         }
       }
@@ -77,8 +81,9 @@ public class PGPMessageSigner extends BasePGPCommon implements MessageSigner {
       });
       final PGPSignatureGenerator signatureGenerator = new PGPSignatureGenerator(new BcPGPContentSignerBuilder(privateKey.getPublicKeyPacket().getAlgorithm(), HashAlgorithmTags.SHA256));
       signatureGenerator.init(PGPSignature.BINARY_DOCUMENT, privateKey);
-      PGPCompressedDataGenerator compressedDataGenerator = new PGPCompressedDataGenerator(getCompressionAlgorithm());
-      try( BCPGOutputStream outputStream = new BCPGOutputStream( compressedDataGenerator.open(signedMessage) ) ) {
+      //PGPCompressedDataGenerator compressedDataGenerator = new PGPCompressedDataGenerator(getCompressionAlgorithm());
+      //try( BCPGOutputStream outputStream = new BCPGOutputStream( compressedDataGenerator.open(signedMessage) ) ) {
+      try( BCPGOutputStream outputStream = new BCPGOutputStream( new ArmoredOutputStream(signedMessage)) ) {
         IOUtils.process(message, new IOUtils.StreamHandler() {
 
           @Override
@@ -89,7 +94,7 @@ public class PGPMessageSigner extends BasePGPCommon implements MessageSigner {
         });
         signatureGenerator.generate().encode(outputStream);
       }
-      compressedDataGenerator.close();
+      //compressedDataGenerator.close();
       result = true;
     } catch (IOException e) {
       e.printStackTrace();
