@@ -11,7 +11,6 @@ import org.bouncycastle.openpgp.operator.bc.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.security.SecureRandom;
 import java.util.Date;
 import java.util.Iterator;
 
