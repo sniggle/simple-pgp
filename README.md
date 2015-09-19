@@ -4,6 +4,10 @@ A wrapper library making the implementation of PGP in Java applications easy.
 It also strives to provide sane defaults for secure PGP to ensure easy and secure
 PGP implementations in Java.
 
+## Status
+Currently the library is not ready for production use. It's missing inline documentation and logging outputs.
+Tests have not yet been implemented either. Use with caution as of now.
+
 ## License
 The library is provided under the 3-clause BSD License. Details see under [LICENSE](LICENSE)
 

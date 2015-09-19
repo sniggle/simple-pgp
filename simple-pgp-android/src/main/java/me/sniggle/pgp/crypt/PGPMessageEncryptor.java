@@ -14,12 +14,12 @@ import java.util.Date;
 /**
  * Created by iulius on 17/09/15.
  */
-public class PGPEncryptor implements Encryptor {
+public class PGPMessageEncryptor implements MessageEncryptor {
 
   private boolean unlimitedEncryptionStrength = false;
   private int compressionAlgorithm = PGPCompressedData.ZIP;
 
-  public PGPEncryptor() {
+  public PGPMessageEncryptor() {
   }
 
   private OutputStream wrapTargetStream(OutputStream target, String dataName, PGPPublicKey publicKey) throws PGPException, NoSuchProviderException, IOException {

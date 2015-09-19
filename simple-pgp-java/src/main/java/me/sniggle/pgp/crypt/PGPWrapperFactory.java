@@ -17,16 +17,16 @@ public final class PGPWrapperFactory {
     Security.addProvider(new BouncyCastleProvider());
   }
 
-  public static Encryptor getEncyptor() {
-    return new PGPEncryptor();
+  public static MessageEncryptor getEncyptor() {
+    return new PGPMessageEncryptor();
   }
 
   public static KeyPairGenerator getKeyPairGenerator() {
     return new PGPKeyPairGenerator();
   }
 
-  public static Signer getSigner() {
-    return null;
+  public static MessageSigner getSigner() {
+    return new PGPMessageSigner();
   }
 
 }
