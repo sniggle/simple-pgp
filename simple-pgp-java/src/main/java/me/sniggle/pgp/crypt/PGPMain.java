@@ -78,9 +78,9 @@ public class PGPMain {
       }
     }
      ***/
-    try( InputStream publicKeyStream = new FileInputStream("simple-pgp-java/src/main/resources/test-pub.asc") ) {
+    try( InputStream publicKeyStream = new FileInputStream("simple-pgp-java/src/main/resources/iulius@gutberlet.eu-pub.asc") ) {
       try( InputStream messageStream = new FileInputStream("simple-pgp-java/src/main/resources/test-message.txt") ) {
-        try (InputStream signatureStream = new FileInputStream("simple-pgp-java/src/main/resources/test-message.sig")) {
+        try (InputStream signatureStream = new FileInputStream("simple-pgp-java/src/main/resources/test-message.gpg.sig")) {
           messageSigner.verifyMessage(publicKeyStream, messageStream, signatureStream);
         }
       }

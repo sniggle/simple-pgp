@@ -24,13 +24,11 @@ public class PGPMessageSigner extends BasePGPCommon implements MessageSigner {
   public boolean verifyMessage(InputStream publicKey, InputStream message, InputStream signatureStream) {
     boolean result = false;
     try( InputStream armordPublicKeyStream = new ArmoredInputStream(signatureStream) ) {
+      Object pgpObject;
       PGPObjectFactory pgpObjectFactory = new PGPObjectFactory(armordPublicKeyStream, new BcKeyFingerprintCalculator());
-      Object pgpObject = pgpObjectFactory.nextObject();
-      if( pgpObject instanceof PGPCompressedData ) {
-        pgpObjectFactory = new PGPObjectFactory(((PGPCompressedData)pgpObject).getDataStream(), new BcKeyFingerprintCalculator());
-        pgpObject = pgpObjectFactory.nextObject();
+      while( (pgpObject = pgpObjectFactory.nextObject()) != null ) {
         if( pgpObject instanceof PGPSignatureList ) {
-          PGPSignatureList signatureList = (PGPSignatureList) pgpObject;
+          PGPSignatureList signatureList = (PGPSignatureList)pgpObject;
           Iterator<PGPSignature> signatureIterator = signatureList.iterator();
           while( signatureIterator.hasNext() ) {
             final PGPSignature signature = signatureIterator.next();
@@ -40,8 +38,13 @@ public class PGPMessageSigner extends BasePGPCommon implements MessageSigner {
                 return pgpKey.getKeyID() == signature.getKeyID();
               }
             }));
+            IOUtils.process(message, new IOUtils.StreamHandler() {
+              @Override
+              public void handleStreamBuffer(byte[] buffer, int offset, int length) throws IOException {
+                signature.update(buffer, offset, length);
+              }
+            });
             System.out.println(signature.verify());
-            System.out.println(signature.getKeyAlgorithm());
           }
         }
       }
