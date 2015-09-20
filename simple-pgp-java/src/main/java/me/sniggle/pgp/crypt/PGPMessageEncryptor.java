@@ -270,7 +270,7 @@ public class PGPMessageEncryptor extends BasePGPCommon implements MessageEncrypt
         LOGGER.debug("Retrieving data stream from encrypted data");
         try( InputStream clearText = ((PGPPublicKeyEncryptedData)pgpEncryptedData).getDataStream(publicKeyDataDecryptorFactory)) {
           PGPObjectFactory pgpObjectFactory = new PGPObjectFactory(clearText, new BcKeyFingerprintCalculator());
-          Object message = pgpObjectFactory.nextObject();
+          Object message;
           PGPCompressedData compressedData;
           PGPOnePassSignatureList onePassSignatureList = null;
           PGPOnePassSignature onePassSignature = null;
