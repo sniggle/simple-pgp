@@ -16,13 +16,31 @@ import java.util.Date;
 import java.util.Iterator;
 
 /**
- * Created by iulius on 16/09/15.
+ * The the library dependent implementation of a MessageEncryptor
+ *
+ * @author iulius
  */
 public class PGPMessageEncryptor extends BasePGPCommon implements MessageEncryptor {
 
   public PGPMessageEncryptor() {
   }
 
+  /**
+   * encrypts and if possible (secret key and password provided) signs the target stream
+   *
+   * @param pgpSecretKey
+   *    the secret key
+   * @param password
+   *    the password for the private key
+   * @param inputDataName
+   *    the name of the data
+   * @param inputData
+   *    the plain input data
+   * @param encryptedDataStream
+   *    the encrypted data stream
+   * @throws PGPException
+   * @throws IOException
+   */
   private void encryptAndSign(PGPSecretKey pgpSecretKey, String password, String inputDataName, InputStream inputData, OutputStream encryptedDataStream) throws PGPException, IOException {
     PGPSignatureGenerator pgpSignatureGenerator = null;
 
@@ -62,19 +80,56 @@ public class PGPMessageEncryptor extends BasePGPCommon implements MessageEncrypt
     }
   }
 
+  /**
+   * accessor to the encryption algorithm constant to use, based of #isUnlimitedEncryptionStrength()
+   *
+   * @return the appropriate algorithm constant
+   */
   protected  int getEncryptionAlgorithm() {
     return (isUnlimitedEncryptionStrength()) ? PGPEncryptedData.AES_256 : PGPEncryptedData.AES_128;
   }
 
+  /**
+   * @see MessageEncryptor#encrypt(InputStream, String, InputStream, OutputStream)
+   *
+   * @param publicKeyOfRecipient
+   *    the public key stream of the message recipient
+   * @param inputDataName
+   *    the (file)name of the input data
+   * @param plainInputData
+   *    the input data stream
+   * @param target
+   *    the encrypted (ascii-armored) target stream
+   * @return
+   */
   @Override
-  public boolean encrypt(InputStream publicKey, String inputDataName, InputStream inputData, OutputStream target) {
-    return encrypt(publicKey, null, null, null, inputDataName, inputData, target);
+  public boolean encrypt(InputStream publicKeyOfRecipient, String inputDataName, InputStream plainInputData, OutputStream target) {
+    return encrypt(publicKeyOfRecipient, null, null, null, inputDataName, plainInputData, target);
   }
 
+  /**
+   * @see MessageEncryptor#encrypt(InputStream, InputStream, String, String, String, InputStream, OutputStream)
+   *
+   * @param publicKeyOfRecipient
+   *    the public key stream of the message recipient
+   * @param privateKeyOfSender
+   *    the private key stream of the message sender
+   * @param userIdOfSender
+   *    the user id of the message sender
+   * @param passwordOfSendersPrivateKey
+   *    the password for the private key of the sender
+   * @param inputDataName
+   *    the (file)name of the input data
+   * @param plainInputData
+   *    the input data stream
+   * @param target
+   *    the encrypted (ascii-armored) target stream
+   * @return
+   */
   @Override
-  public boolean encrypt(InputStream publicKey, InputStream privateKey, String userId, String password, String inputDataName, InputStream inputData, OutputStream target) {
+  public boolean encrypt(InputStream publicKeyOfRecipient, InputStream privateKeyOfSender, String userIdOfSender, String passwordOfSendersPrivateKey, String inputDataName, InputStream plainInputData, OutputStream target) {
     boolean result = true;
-    PGPPublicKey pgpPublicKey = findPublicKey(publicKey, new KeyFilter<PGPPublicKey>() {
+    PGPPublicKey pgpPublicKey = findPublicKey(publicKeyOfRecipient, new KeyFilter<PGPPublicKey>() {
       @Override
       public boolean accept(PGPPublicKey pgpKey) {
         return pgpKey.isEncryptionKey() && !pgpKey.isMasterKey();
@@ -87,11 +142,11 @@ public class PGPMessageEncryptor extends BasePGPCommon implements MessageEncrypt
         PGPEncryptedDataGenerator encryptedDataGenerator = new PGPEncryptedDataGenerator(encryptorBuilder);
         encryptedDataGenerator.addMethod(new BcPublicKeyKeyEncryptionMethodGenerator(pgpPublicKey));
         PGPSecretKey pgpSecretKey = null;
-        if( privateKey != null ) {
-          pgpSecretKey = findSecretKey(privateKey, userId);
+        if( privateKeyOfSender != null ) {
+          pgpSecretKey = findSecretKey(privateKeyOfSender, userIdOfSender);
         }
         try( OutputStream encryptedDataStream = encryptedDataGenerator.open(wrappedTargetStream, new byte[4096]) ) {
-          encryptAndSign(pgpSecretKey, password, inputDataName, inputData, encryptedDataStream);
+          encryptAndSign(pgpSecretKey, passwordOfSendersPrivateKey, inputDataName, plainInputData, encryptedDataStream);
         }
       } catch (IOException | PGPException e) {
         result &= false;
@@ -100,18 +155,46 @@ public class PGPMessageEncryptor extends BasePGPCommon implements MessageEncrypt
     return result;
   }
 
+  /**
+   * @see MessageEncryptor#decrypt(String, InputStream, InputStream, OutputStream)
+   *
+   * @param passwordOfReceiversPrivateKey
+   *    the password for the receiver's private key
+   * @param privateKeyOfReceiver
+   *    the receiver's private key
+   * @param encryptedData
+   *    the encrypted data
+   * @param target
+   *    the plain data stream
+   * @return
+   */
   @Override
-  public boolean decrypt(String password, InputStream privateKey, InputStream encryptedData, OutputStream target) {
-    return decrypt(password, privateKey, null, encryptedData, target);
+  public boolean decrypt(String passwordOfReceiversPrivateKey, InputStream privateKeyOfReceiver, InputStream encryptedData, OutputStream target) {
+    return decrypt(passwordOfReceiversPrivateKey, privateKeyOfReceiver, null, encryptedData, target);
   }
 
+  /**
+   * @see MessageEncryptor#decrypt(String, InputStream, InputStream, InputStream, OutputStream)
+   *
+   * @param passwordOfReceiversPrivateKey
+   *    the password of the receivers private key
+   * @param privateKeyOfReceiver
+   *    the receiver's private key
+   * @param publicKeyOfSender
+   *    the sender's public key
+   * @param encryptedData
+   *    the encrypted data
+   * @param target
+   *    the plain data stream
+   * @return
+   */
   @Override
-  public boolean decrypt(String password, InputStream privateKey, InputStream publicKey, InputStream encryptedData, OutputStream target) {
+  public boolean decrypt(String passwordOfReceiversPrivateKey, InputStream privateKeyOfReceiver, InputStream publicKeyOfSender, InputStream encryptedData, OutputStream target) {
     boolean result = true;
     try {
       PGPPublicKeyRingCollection publicKeyRingCollection = null;
-      if( publicKey != null ) {
-        publicKeyRingCollection = new PGPPublicKeyRingCollection(new ArmoredInputStream(publicKey), new BcKeyFingerprintCalculator());
+      if( publicKeyOfSender != null ) {
+        publicKeyRingCollection = new PGPPublicKeyRingCollection(new ArmoredInputStream(publicKeyOfSender), new BcKeyFingerprintCalculator());
       }
       try( InputStream in = PGPUtil.getDecoderStream(encryptedData) ) {
         PGPObjectFactory objectFactory = new PGPObjectFactory(in, new BcKeyFingerprintCalculator());
@@ -127,7 +210,7 @@ public class PGPMessageEncryptor extends BasePGPCommon implements MessageEncrypt
         PGPPrivateKey pgpPrivateKey = null;
         PGPEncryptedData pgpEncryptedData = null;
         while( pgpPrivateKey == null && ((pgpEncryptedData = iterator.next()) != null) ) {
-          pgpPrivateKey = findPrivateKey(privateKey, ((PGPPublicKeyEncryptedData)pgpEncryptedData).getKeyID(), password);
+          pgpPrivateKey = findPrivateKey(privateKeyOfReceiver, ((PGPPublicKeyEncryptedData)pgpEncryptedData).getKeyID(), passwordOfReceiversPrivateKey);
         }
         PublicKeyDataDecryptorFactory publicKeyDataDecryptorFactory = new BcPublicKeyDataDecryptorFactory(pgpPrivateKey);
         try( InputStream clearText = ((PGPPublicKeyEncryptedData)pgpEncryptedData).getDataStream(publicKeyDataDecryptorFactory)) {
@@ -160,7 +243,7 @@ public class PGPMessageEncryptor extends BasePGPCommon implements MessageEncrypt
             } else if( message instanceof PGPOnePassSignatureList ) {
               onePassSignatureList = (PGPOnePassSignatureList)message;
               onePassSignature = onePassSignatureList.get(0);
-              if( publicKey != null ) {
+              if( publicKeyOfSender != null ) {
                 pgpPublicKey = publicKeyRingCollection.getPublicKey(onePassSignature.getKeyID());
                 onePassSignature.init(new BcPGPContentVerifierBuilderProvider(), pgpPublicKey);
               }

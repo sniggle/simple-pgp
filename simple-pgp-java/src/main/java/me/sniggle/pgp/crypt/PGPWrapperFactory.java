@@ -5,7 +5,9 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import java.security.Security;
 
 /**
- * Created by iulius on 16/09/15.
+ * The Factory providing a library independent simple access to the simple PGP API
+ *
+ * @author iulius
  */
 public final class PGPWrapperFactory {
 
@@ -13,18 +15,33 @@ public final class PGPWrapperFactory {
     super();
   }
 
+  /**
+   * initializes the security provider
+   */
   public static void init() {
     Security.addProvider(new BouncyCastleProvider());
   }
 
+  /**
+   *
+   * @return a message encryptor instance
+   */
   public static MessageEncryptor getEncyptor() {
     return new PGPMessageEncryptor();
   }
 
+  /**
+   *
+   * @return a key pair generator instance
+   */
   public static KeyPairGenerator getKeyPairGenerator() {
     return new PGPKeyPairGenerator();
   }
 
+  /**
+   *
+   * @return a message signer instance
+   */
   public static MessageSigner getSigner() {
     return new PGPMessageSigner();
   }

@@ -4,10 +4,20 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
- * Created by iulius on 18/09/15.
+ * Definition of a simple PGP key signer
+ *
+ * @author iulius
  */
 public interface KeySigner {
 
+  /**
+   * TODO no implementation present yet
+   *
+   * @param publicKey
+   * @param privateKey
+   * @param targetStream
+   * @return
+   */
   boolean signKey(InputStream publicKey, InputStream privateKey, OutputStream targetStream);
 
 }

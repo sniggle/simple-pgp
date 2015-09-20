@@ -17,12 +17,25 @@ import java.io.OutputStream;
 import java.util.Iterator;
 
 /**
- * Created by iulius on 18/09/15.
+ * The the library dependent implementation of a MessageSigner
+ *
+ * @author iulius
  */
 public class PGPMessageSigner extends BasePGPCommon implements MessageSigner {
 
+  /**
+   * @see MessageSigner#verifyMessage(InputStream, InputStream, InputStream)
+   *
+   * @param publicKeyOfSender
+   *    the public key of the sender of the message
+   * @param message
+   *    the message / data to verify
+   * @param signatureStream
+   *    the (detached) signature
+   * @return
+   */
   @Override
-  public boolean verifyMessage(InputStream publicKey, InputStream message, InputStream signatureStream) {
+  public boolean verifyMessage(InputStream publicKeyOfSender, InputStream message, InputStream signatureStream) {
     boolean result = false;
     try( InputStream armordPublicKeyStream = new ArmoredInputStream(signatureStream) ) {
       Object pgpObject;
@@ -33,7 +46,7 @@ public class PGPMessageSigner extends BasePGPCommon implements MessageSigner {
           Iterator<PGPSignature> signatureIterator = signatureList.iterator();
           while( signatureIterator.hasNext() ) {
             final PGPSignature signature = signatureIterator.next();
-            PGPPublicKey pgpPublicKey = findPublicKey(publicKey, new KeyFilter<PGPPublicKey>() {
+            PGPPublicKey pgpPublicKey = findPublicKey(publicKeyOfSender, new KeyFilter<PGPPublicKey>() {
               @Override
               public boolean accept(PGPPublicKey pgpKey) {
                 return pgpKey.getKeyID() == signature.getKeyID();
@@ -60,8 +73,23 @@ public class PGPMessageSigner extends BasePGPCommon implements MessageSigner {
     return result;
   }
 
+  /**
+   * @see MessageSigner#signMessage(InputStream, String, String, InputStream, OutputStream)
+   *
+   * @param privateKeyOfSender
+   *    the private key of the sender
+   * @param userIdForPrivateKey
+   *    the user id of the sender
+   * @param passwordOfPrivateKey
+   *    the password for the private key
+   * @param message
+   *    the message / data to verify
+   * @param signature
+   *    the (detached) signature
+   * @return
+   */
   @Override
-  public boolean signMessage(InputStream privateKeyOfSender, final String userIdForPrivateKey, String passwordOfPrivateKey, InputStream message, OutputStream signedMessage) {
+  public boolean signMessage(InputStream privateKeyOfSender, final String userIdForPrivateKey, String passwordOfPrivateKey, InputStream message, OutputStream signature) {
     boolean result = false;
     try {
       PGPPrivateKey privateKey = findPrivateKey(privateKeyOfSender, passwordOfPrivateKey,  new KeyFilter<PGPSecretKey>() {
@@ -81,7 +109,7 @@ public class PGPMessageSigner extends BasePGPCommon implements MessageSigner {
       });
       final PGPSignatureGenerator signatureGenerator = new PGPSignatureGenerator(new BcPGPContentSignerBuilder(privateKey.getPublicKeyPacket().getAlgorithm(), HashAlgorithmTags.SHA256));
       signatureGenerator.init(PGPSignature.BINARY_DOCUMENT, privateKey);
-      try( BCPGOutputStream outputStream = new BCPGOutputStream( new ArmoredOutputStream(signedMessage)) ) {
+      try( BCPGOutputStream outputStream = new BCPGOutputStream( new ArmoredOutputStream(signature)) ) {
         IOUtils.process(message, new IOUtils.StreamHandler() {
 
           @Override
