@@ -18,9 +18,7 @@ import static org.junit.Assert.assertEquals;
  * Created by iulius on 19/09/15.
  */
 @RunWith(Parameterized.class)
-public class PGPMessageEncryptorTest {
-
-  private static final String BASE_PATH = "src/test/resources/";
+public class PGPMessageEncryptorDecryptTest extends BaseTest {
 
   private MessageEncryptor messageEncryptor;
   private String password;
@@ -28,7 +26,7 @@ public class PGPMessageEncryptorTest {
   private String encryptedDataFilename;
   private String expectedMessage;
 
-  public PGPMessageEncryptorTest(String password, String privateKeyFilename, String encryptedDataFilename, String expectedMessage) {
+  public PGPMessageEncryptorDecryptTest(String password, String privateKeyFilename, String encryptedDataFilename, String expectedMessage) {
     this.password = password;
     this.privateKeyFilename = privateKeyFilename;
     this.encryptedDataFilename = encryptedDataFilename;

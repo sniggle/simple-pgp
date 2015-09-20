@@ -41,12 +41,15 @@ public abstract class BasePGPCommon {
     PGPSecretKey result = null;
       Iterator<PGPSecretKeyRing> secretKeyRingIterator = secretKeyRingCollection.getKeyRings();
       PGPSecretKeyRing secretKeyRing = null;
-      while( result == null && (secretKeyRing = secretKeyRingIterator.next()) != null ) {
-        PGPSecretKey secretKey = secretKeyRing.getSecretKey();
-        if( keyFilter.accept(secretKey) ) {
-          result = secretKey;
+      while( result == null && secretKeyRingIterator.hasNext() ) {
+        secretKeyRing = secretKeyRingIterator.next();
+        Iterator<PGPSecretKey> secretKeyIterator = secretKeyRing.getSecretKeys();
+        while( secretKeyIterator.hasNext() ) {
+          PGPSecretKey secretKey = secretKeyIterator.next();
+          if (keyFilter.accept(secretKey)) {
+            result = secretKey;
+          }
         }
-        result = secretKeyRing.getSecretKey();
       }
     return result;
   }
