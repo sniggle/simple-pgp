@@ -6,21 +6,19 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.Collection;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Created by iulius on 19/09/15.
  */
 @RunWith(Parameterized.class)
-public class PGPMessageSignerVerifyTest extends BaseTest {
+public class PGPMessageSignerVerifyTest {
 
-    private final boolean expectedResult;
+  private final boolean expectedResult;
   private MessageSigner messageSigner;
 
   private String publicKeyFilename;
@@ -51,7 +49,7 @@ public class PGPMessageSignerVerifyTest extends BaseTest {
 
   @Test
   public void testVerifyMessage() throws FileNotFoundException {
-    assertEquals(expectedResult, messageSigner.verifyMessage(new FileInputStream(BASE_PATH + publicKeyFilename), new FileInputStream(BASE_PATH + plainMessageFilename), new FileInputStream(BASE_PATH + signatureFilename)));
+    assertEquals(expectedResult, messageSigner.verifyMessage(getClass().getResourceAsStream(publicKeyFilename), getClass().getResourceAsStream(plainMessageFilename), getClass().getResourceAsStream(signatureFilename)));
   }
 
   @After

@@ -18,7 +18,7 @@ import static org.junit.Assert.assertEquals;
  * Created by iulius on 19/09/15.
  */
 @RunWith(Parameterized.class)
-public class PGPMessageEncryptorDecryptTest extends BaseTest {
+public class PGPMessageEncryptorDecryptTest {
 
   private MessageEncryptor messageEncryptor;
   private String password;
@@ -49,7 +49,7 @@ public class PGPMessageEncryptorDecryptTest extends BaseTest {
   @Test
   public void testDecryptWithoutSignage() throws FileNotFoundException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    boolean actualResult = messageEncryptor.decrypt(password, new FileInputStream(BASE_PATH+privateKeyFilename), new FileInputStream(BASE_PATH+encryptedDataFilename), baos);
+    boolean actualResult = messageEncryptor.decrypt(password, getClass().getResourceAsStream(privateKeyFilename), getClass().getResourceAsStream(encryptedDataFilename), baos);
     assertEquals(expectedMessage != null, actualResult);
     assertEquals(expectedMessage, new String(baos.toByteArray()));
   }

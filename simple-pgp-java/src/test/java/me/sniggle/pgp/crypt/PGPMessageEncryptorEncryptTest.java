@@ -17,7 +17,7 @@ import static org.junit.Assert.assertTrue;
  * Created by iulius on 19/09/15.
  */
 @RunWith(Parameterized.class)
-public class PGPMessageEncryptorEncryptTest extends BaseTest {
+public class PGPMessageEncryptorEncryptTest {
 
   private MessageEncryptor messageEncryptor;
   private final String privateKeyFilename;
@@ -48,9 +48,9 @@ public class PGPMessageEncryptorEncryptTest extends BaseTest {
   @Test
   public void testEncrypt() throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    assertTrue(messageEncryptor.encrypt(new FileInputStream(BASE_PATH + publicKeyFilename), "test-message.txt", new FileInputStream(BASE_PATH + plainDataFilename), baos));
+    assertTrue(messageEncryptor.encrypt( getClass().getResourceAsStream(publicKeyFilename), "test-message.txt", getClass().getResourceAsStream(plainDataFilename), baos));
     ByteArrayOutputStream plainResult = new ByteArrayOutputStream();
-    assertTrue(messageEncryptor.decrypt("testpassword", new FileInputStream(BASE_PATH + privateKeyFilename), new ByteArrayInputStream(baos.toByteArray()), plainResult));
+    assertTrue(messageEncryptor.decrypt("testpassword", getClass().getResourceAsStream(privateKeyFilename), new ByteArrayInputStream(baos.toByteArray()), plainResult));
     assertEquals("Hello World!", new String(plainResult.toByteArray()));
   }
 
@@ -58,19 +58,19 @@ public class PGPMessageEncryptorEncryptTest extends BaseTest {
   public void testEncryptAndSign() throws FileNotFoundException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     assertTrue(messageEncryptor.encrypt(
-        new FileInputStream(BASE_PATH + publicKeyFilename),
-        new FileInputStream(BASE_PATH + privateKeyFilename),
+        getClass().getResourceAsStream(publicKeyFilename),
+        getClass().getResourceAsStream(privateKeyFilename),
         userId,
         "testpassword",
         "test-message.txt",
-        new FileInputStream(BASE_PATH + plainDataFilename),
+        getClass().getResourceAsStream(plainDataFilename),
         baos
     ));
     ByteArrayOutputStream plainText = new ByteArrayOutputStream();
     assertTrue(messageEncryptor.decrypt(
         "testpassword",
-        new FileInputStream(BASE_PATH + privateKeyFilename),
-        new FileInputStream(BASE_PATH + publicKeyFilename),
+        getClass().getResourceAsStream(privateKeyFilename),
+        getClass().getResourceAsStream(publicKeyFilename),
         new ByteArrayInputStream(baos.toByteArray()),
         plainText
     ));
