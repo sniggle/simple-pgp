@@ -6,12 +6,12 @@ import org.spongycastle.bcpg.ArmoredOutputStream;
 import org.spongycastle.bcpg.BCPGOutputStream;
 import org.spongycastle.bcpg.HashAlgorithmTags;
 import org.spongycastle.openpgp.*;
+import org.spongycastle.openpgp.operator.PublicKeyDataDecryptorFactory;
 import org.spongycastle.openpgp.operator.bc.*;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.security.SecureRandom;
 import java.util.Date;
 import java.util.Iterator;
 
@@ -26,7 +26,10 @@ public class PGPMessageEncryptor extends BasePGPCommon implements MessageEncrypt
   private void encryptAndSign(PGPSecretKey pgpSecretKey, String password, String inputDataName, InputStream inputData, OutputStream encryptedDataStream) throws PGPException, IOException {
     PGPSignatureGenerator pgpSignatureGenerator = null;
 
-    PGPPrivateKey signingKey = findPrivateKey(pgpSecretKey, password);
+    PGPPrivateKey signingKey = null;
+    if (pgpSecretKey != null) {
+      signingKey = findPrivateKey(pgpSecretKey, password);
+    }
 
     PGPCompressedDataGenerator compressedDataGenerator = new PGPCompressedDataGenerator(getCompressionAlgorithm());
     try ( OutputStream compressedDataStream = new BCPGOutputStream(compressedDataGenerator.open(encryptedDataStream)) ) {
@@ -74,7 +77,7 @@ public class PGPMessageEncryptor extends BasePGPCommon implements MessageEncrypt
     PGPPublicKey pgpPublicKey = findPublicKey(publicKey, new KeyFilter<PGPPublicKey>() {
       @Override
       public boolean accept(PGPPublicKey pgpKey) {
-        return pgpKey.isEncryptionKey();
+        return pgpKey.isEncryptionKey() && !pgpKey.isMasterKey();
       }
     });
     if( pgpPublicKey != null ) {
@@ -83,7 +86,10 @@ public class PGPMessageEncryptor extends BasePGPCommon implements MessageEncrypt
         encryptorBuilder.setWithIntegrityPacket(true);
         PGPEncryptedDataGenerator encryptedDataGenerator = new PGPEncryptedDataGenerator(encryptorBuilder);
         encryptedDataGenerator.addMethod(new BcPublicKeyKeyEncryptionMethodGenerator(pgpPublicKey));
-        PGPSecretKey pgpSecretKey = findSecretKey(privateKey, userId);
+        PGPSecretKey pgpSecretKey = null;
+        if( privateKey != null ) {
+          pgpSecretKey = findSecretKey(privateKey, userId);
+        }
         try( OutputStream encryptedDataStream = encryptedDataGenerator.open(wrappedTargetStream, new byte[4096]) ) {
           encryptAndSign(pgpSecretKey, password, inputDataName, inputData, encryptedDataStream);
         }
@@ -123,7 +129,8 @@ public class PGPMessageEncryptor extends BasePGPCommon implements MessageEncrypt
         while( pgpPrivateKey == null && ((pgpEncryptedData = iterator.next()) != null) ) {
           pgpPrivateKey = findPrivateKey(privateKey, ((PGPPublicKeyEncryptedData)pgpEncryptedData).getKeyID(), password);
         }
-        try( InputStream clearText = ((PGPPublicKeyEncryptedData)pgpEncryptedData).getDataStream(new BcPublicKeyDataDecryptorFactory(pgpPrivateKey))) {
+        PublicKeyDataDecryptorFactory publicKeyDataDecryptorFactory = new BcPublicKeyDataDecryptorFactory(pgpPrivateKey);
+        try( InputStream clearText = ((PGPPublicKeyEncryptedData)pgpEncryptedData).getDataStream(publicKeyDataDecryptorFactory)) {
           PGPObjectFactory pgpObjectFactory = new PGPObjectFactory(clearText, new BcKeyFingerprintCalculator());
           Object message = pgpObjectFactory.nextObject();
           PGPCompressedData compressedData;
@@ -171,7 +178,7 @@ public class PGPMessageEncryptor extends BasePGPCommon implements MessageEncrypt
                 String userId = null;
                 Iterator<String> it = pgpPublicKey.getUserIDs();
                 while (it.hasNext()) {
-                  //System.out.println(it.next());
+                  System.out.println(it.next());
                 }
               } else {
                 result &= false;

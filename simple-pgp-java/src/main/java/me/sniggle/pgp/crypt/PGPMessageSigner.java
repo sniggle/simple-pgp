@@ -81,8 +81,6 @@ public class PGPMessageSigner extends BasePGPCommon implements MessageSigner {
       });
       final PGPSignatureGenerator signatureGenerator = new PGPSignatureGenerator(new BcPGPContentSignerBuilder(privateKey.getPublicKeyPacket().getAlgorithm(), HashAlgorithmTags.SHA256));
       signatureGenerator.init(PGPSignature.BINARY_DOCUMENT, privateKey);
-      //PGPCompressedDataGenerator compressedDataGenerator = new PGPCompressedDataGenerator(getCompressionAlgorithm());
-      //try( BCPGOutputStream outputStream = new BCPGOutputStream( compressedDataGenerator.open(signedMessage) ) ) {
       try( BCPGOutputStream outputStream = new BCPGOutputStream( new ArmoredOutputStream(signedMessage)) ) {
         IOUtils.process(message, new IOUtils.StreamHandler() {
 
@@ -94,7 +92,6 @@ public class PGPMessageSigner extends BasePGPCommon implements MessageSigner {
         });
         signatureGenerator.generate().encode(outputStream);
       }
-      //compressedDataGenerator.close();
       result = true;
     } catch (IOException e) {
       e.printStackTrace();
