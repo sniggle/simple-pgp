@@ -4,6 +4,11 @@ A wrapper library making the implementation of PGP in Java applications easy.
 It also strives to provide sane defaults for secure PGP to ensure easy and secure
 PGP implementations in Java.
 
+## Health
+[![Build Status](https://travis-ci.org/tuxbox/simple-pgp.png?branch=master)](https://travis-ci.org/tuxbox/simple-pgp)
+[![Coverity Scan Build Status](https://scan.coverity.com/projects/6412/badge.svg)](https://scan.coverity.com/projects/tuxbox-simple-pgp)
+[![codecov.io](https://codecov.io/github/tuxbox/simple-pgp/coverage.svg?branch=master)](https://codecov.io/github/tuxbox/simple-pgp?branch=master)
+
 ## Status
 Currently the library is not ready for production use. It's missing inline documentation and logging outputs.
 Tests have not yet been implemented either. Use with caution as of now.
