@@ -10,6 +10,8 @@ import org.bouncycastle.openpgp.*;
 import org.bouncycastle.openpgp.operator.bc.BcKeyFingerprintCalculator;
 import org.bouncycastle.openpgp.operator.bc.BcPGPContentSignerBuilder;
 import org.bouncycastle.openpgp.operator.bc.BcPGPContentVerifierBuilderProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,6 +24,8 @@ import java.util.Iterator;
  * @author iulius
  */
 public class PGPMessageSigner extends BasePGPCommon implements MessageSigner {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(PGPMessageSigner.class);
 
   /**
    * @see MessageSigner#verifyMessage(InputStream, InputStream, InputStream)
@@ -36,15 +40,23 @@ public class PGPMessageSigner extends BasePGPCommon implements MessageSigner {
    */
   @Override
   public boolean verifyMessage(InputStream publicKeyOfSender, InputStream message, InputStream signatureStream) {
+    LOGGER.trace("verifyMessage(InputStream, InputStream, InputStream)");
+    LOGGER.trace("Public Key: {}, Data: {}, Signature: {}",
+        publicKeyOfSender == null ? "not set" : "set", message == null ? "not set" : "set", signatureStream == null ? "not set" : "set");
     boolean result = false;
+    LOGGER.debug("Wrapping signature stream in ArmoredInputStream");
     try( InputStream armordPublicKeyStream = new ArmoredInputStream(signatureStream) ) {
       Object pgpObject;
       PGPObjectFactory pgpObjectFactory = new PGPObjectFactory(armordPublicKeyStream, new BcKeyFingerprintCalculator());
+      LOGGER.debug("Iterating over PGP objects in stream");
       while( (pgpObject = pgpObjectFactory.nextObject()) != null ) {
         if( pgpObject instanceof PGPSignatureList ) {
+          LOGGER.debug("Signature List found");
           PGPSignatureList signatureList = (PGPSignatureList)pgpObject;
+          LOGGER.debug("Iterating over signature list");
           Iterator<PGPSignature> signatureIterator = signatureList.iterator();
           while( signatureIterator.hasNext() ) {
+            LOGGER.debug("Checking next signature");
             final PGPSignature signature = signatureIterator.next();
             PGPPublicKey pgpPublicKey = findPublicKey(publicKeyOfSender, new KeyFilter<PGPPublicKey>() {
               @Override
@@ -54,6 +66,7 @@ public class PGPMessageSigner extends BasePGPCommon implements MessageSigner {
             });
             if( pgpPublicKey != null ) {
               signature.init(new BcPGPContentVerifierBuilderProvider(), pgpPublicKey);
+              LOGGER.debug("Processing signature data");
               IOUtils.process(message, new IOUtils.StreamHandler() {
                 @Override
                 public void handleStreamBuffer(byte[] buffer, int offset, int length) throws IOException {
@@ -61,14 +74,16 @@ public class PGPMessageSigner extends BasePGPCommon implements MessageSigner {
                 }
               });
               result = signature.verify();
+              LOGGER.info("Verify Signature: {}", result);
+            } else {
+              LOGGER.warn("No public key found for signature. Key ID: {}", signature.getKeyID());
             }
           }
         }
       }
-    } catch (IOException e) {
-      e.printStackTrace();
-    } catch (PGPException e) {
-      e.printStackTrace();
+    } catch (IOException | PGPException e) {
+      LOGGER.error("{}", e.getMessage());
+      result &= false;
     }
     return result;
   }
@@ -90,8 +105,13 @@ public class PGPMessageSigner extends BasePGPCommon implements MessageSigner {
    */
   @Override
   public boolean signMessage(InputStream privateKeyOfSender, final String userIdForPrivateKey, String passwordOfPrivateKey, InputStream message, OutputStream signature) {
+    LOGGER.trace("signMessage(InputStream, String, String, InputStream, OutputStream)");
+    LOGGER.trace("Private Key: {}, User ID: {}, Password: {}, Data: {}, Signature: {}",
+        privateKeyOfSender == null ? "not set" : "set", userIdForPrivateKey, passwordOfPrivateKey == null ? "not set" : "********",
+        message == null ? "not set" : "set", signature == null ? "not set" : "set");
     boolean result = false;
     try {
+      LOGGER.debug("Retrieving Private Key");
       PGPPrivateKey privateKey = findPrivateKey(privateKeyOfSender, passwordOfPrivateKey,  new KeyFilter<PGPSecretKey>() {
 
         @Override
@@ -107,8 +127,10 @@ public class PGPMessageSigner extends BasePGPCommon implements MessageSigner {
           return result;
         }
       });
+      LOGGER.debug("Initializing signature generator");
       final PGPSignatureGenerator signatureGenerator = new PGPSignatureGenerator(new BcPGPContentSignerBuilder(privateKey.getPublicKeyPacket().getAlgorithm(), HashAlgorithmTags.SHA256));
       signatureGenerator.init(PGPSignature.BINARY_DOCUMENT, privateKey);
+      LOGGER.debug("Wrapping signature stream in ArmoredOutputStream and PGOutputStream");
       try( BCPGOutputStream outputStream = new BCPGOutputStream( new ArmoredOutputStream(signature)) ) {
         IOUtils.process(message, new IOUtils.StreamHandler() {
 
@@ -118,13 +140,13 @@ public class PGPMessageSigner extends BasePGPCommon implements MessageSigner {
           }
 
         });
+        LOGGER.info("Writing signature out");
         signatureGenerator.generate().encode(outputStream);
       }
       result = true;
-    } catch (IOException e) {
-      e.printStackTrace();
-    } catch (PGPException e) {
-      e.printStackTrace();
+    } catch (IOException | PGPException e) {
+      result &= false;
+      LOGGER.error("{}", e.getMessage());
     }
     return result;
   }

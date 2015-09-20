@@ -1,5 +1,8 @@
 package me.sniggle.pgp.crypt.internal.io;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -11,6 +14,8 @@ import java.io.OutputStream;
  *
  */
 public class IOUtils {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(IOUtils.class);
 
   /**
    * the default buffer size when handling stream data
@@ -47,6 +52,7 @@ public class IOUtils {
    * @throws IOException
    */
   public static void copy(InputStream inputStream, OutputStream outputStream) throws IOException {
+    LOGGER.trace("copy(InputStream, OutputStream)");
     copy(inputStream, outputStream, new byte[BUFFER_SIZE]);
   }
 
@@ -62,6 +68,7 @@ public class IOUtils {
    * @throws IOException
    */
   public static void copy(InputStream inputStream, OutputStream outputStream, byte[] buffer) throws IOException {
+    LOGGER.trace("copy(InputStream, OutputStream, byte[])");
     copy(inputStream, outputStream, buffer, null);
   }
 
@@ -79,6 +86,8 @@ public class IOUtils {
    * @throws IOException
    */
   public static void copy(InputStream inputStream, final OutputStream outputStream, byte[] buffer, final StreamHandler addtionalHandling) throws IOException {
+    LOGGER.trace("copy(InputStream, OutputStream, byte[], StreamHandler)");
+    LOGGER.debug("buffer size: {} bytes", (buffer!=null) ? buffer.length : "null");
     process(inputStream, new StreamHandler() {
       @Override
       public void handleStreamBuffer(byte[] buffer, int offset, int length) throws IOException {
@@ -88,7 +97,7 @@ public class IOUtils {
         }
       }
 
-    }, new byte[BUFFER_SIZE]);
+    }, buffer);
   }
 
   /**
@@ -101,6 +110,7 @@ public class IOUtils {
    * @throws IOException
    */
   public static void process(InputStream inputStream, StreamHandler handler) throws IOException {
+    LOGGER.trace("process(InputStream, StreamHandler)");
     process(inputStream, handler, new byte[BUFFER_SIZE]);
   }
 
@@ -116,8 +126,11 @@ public class IOUtils {
    * @throws IOException
    */
   public static void process(InputStream inputStream, StreamHandler handler, byte[] buffer) throws IOException {
+    LOGGER.trace("process(InputStream, StreamHandler, byte[])");
+    LOGGER.debug("buffer size: {} bytes", buffer != null ? buffer.length : "null");
     int read = -1;
     while( (read = inputStream.read(buffer)) != -1 ) {
+      LOGGER.debug("{} bytes read from stream", read);
       handler.handleStreamBuffer(buffer, 0, read);
     }
   }

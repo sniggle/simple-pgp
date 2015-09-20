@@ -1,6 +1,8 @@
 package me.sniggle.pgp.crypt.internal;
 
 import me.sniggle.pgp.crypt.KeyPairGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.OutputStream;
 import java.security.SecureRandom;
@@ -11,6 +13,8 @@ import java.security.SecureRandom;
  * @author iulius
  */
 public abstract class BaseKeyPairGenerator implements KeyPairGenerator {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(BaseKeyPairGenerator.class);
 
   /**
    * flag to indicate whether the the Java Unlimited Strength library is installed, needs to be set manually!
@@ -114,6 +118,8 @@ public abstract class BaseKeyPairGenerator implements KeyPairGenerator {
    * @return
    */
   public boolean generateKeyPair(String userId, String password, OutputStream publicKey, OutputStream secrectKey) {
+    LOGGER.trace("generateKeyPair(String, String, OutputStream, OutputStream)");
+    LOGGER.trace("User ID: {}, Password: ********, Public Key: {}, Secret Key: {}", userId, publicKey == null ? "not set" : "set", secrectKey == null ? "not set" : "set");
     return generateKeyPair(userId, password, DEFAULT_KEY_SIZE, publicKey, secrectKey);
   }
 

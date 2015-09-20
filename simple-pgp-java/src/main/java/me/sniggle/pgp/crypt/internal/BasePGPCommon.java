@@ -6,6 +6,8 @@ import org.bouncycastle.openpgp.operator.PBESecretKeyDecryptor;
 import org.bouncycastle.openpgp.operator.bc.BcKeyFingerprintCalculator;
 import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyDecryptorBuilder;
 import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,6 +20,8 @@ import java.util.Iterator;
  * @author iulius
  */
 public abstract class BasePGPCommon {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(BasePGPCommon.class);
 
   /**
    * A functional interface to find the correct PGP key
@@ -73,19 +77,26 @@ public abstract class BasePGPCommon {
    * @throws PGPException
    */
   protected PGPSecretKey retrieveSecretKey(PGPSecretKeyRingCollection secretKeyRingCollection, KeyFilter<PGPSecretKey> keyFilter) throws PGPException {
+    LOGGER.trace("retrieveSecretKey(PGPSecretKeyRingCollection, KeyFilter<PGPSecretKey>)");
+    LOGGER.trace("Secret KeyRing Collection: {}, Key Filter: {}", secretKeyRingCollection == null ? "not set" : "set", keyFilter == null ? "not set" : "set");
     PGPSecretKey result = null;
-      Iterator<PGPSecretKeyRing> secretKeyRingIterator = secretKeyRingCollection.getKeyRings();
-      PGPSecretKeyRing secretKeyRing = null;
-      while( result == null && secretKeyRingIterator.hasNext() ) {
-        secretKeyRing = secretKeyRingIterator.next();
-        Iterator<PGPSecretKey> secretKeyIterator = secretKeyRing.getSecretKeys();
-        while( secretKeyIterator.hasNext() ) {
-          PGPSecretKey secretKey = secretKeyIterator.next();
-          if (keyFilter.accept(secretKey)) {
-            result = secretKey;
-          }
+    Iterator<PGPSecretKeyRing> secretKeyRingIterator = secretKeyRingCollection.getKeyRings();
+    PGPSecretKeyRing secretKeyRing = null;
+    LOGGER.debug("Iterating secret key ring");
+    while( result == null && secretKeyRingIterator.hasNext() ) {
+      secretKeyRing = secretKeyRingIterator.next();
+      Iterator<PGPSecretKey> secretKeyIterator = secretKeyRing.getSecretKeys();
+      LOGGER.debug("Iterating secret keys in key ring");
+      while( secretKeyIterator.hasNext() ) {
+        PGPSecretKey secretKey = secretKeyIterator.next();
+        LOGGER.info("Found secret key: {}", secretKey.getKeyID());
+        LOGGER.debug("Checking secret key with filter");
+        if (keyFilter.accept(secretKey)) {
+          LOGGER.info("Key {} selected from secret key ring");
+          result = secretKey;
         }
       }
+    }
     return result;
   }
 
@@ -101,6 +112,8 @@ public abstract class BasePGPCommon {
    * @throws PGPException
    */
   protected PGPSecretKey findSecretKey(InputStream secretKey, final String userId) throws IOException, PGPException {
+    LOGGER.trace("findSecretKey(InputStream, String)");
+    LOGGER.trace("Secret Key: {}, User ID: {}", secretKey == null ? "not set" : "set", userId);
     return findSecretKey(secretKey, new KeyFilter<PGPSecretKey>() {
 
       @Override
@@ -128,6 +141,8 @@ public abstract class BasePGPCommon {
    * @throws PGPException
    */
   protected PGPSecretKey findSecretKey(InputStream secretKey, final long keyId) throws IOException, PGPException {
+    LOGGER.trace("findSecretKey(InputStream, long)");
+    LOGGER.trace("Secret Key: {}, Key ID: {}", secretKey == null ? "not set" : "set", keyId);
     return findSecretKey(secretKey, new KeyFilter<PGPSecretKey>() {
       @Override
       public boolean accept(PGPSecretKey secretKey) {
@@ -148,8 +163,11 @@ public abstract class BasePGPCommon {
    * @throws PGPException
    */
   protected PGPSecretKey findSecretKey(InputStream secretKey, KeyFilter<PGPSecretKey> keyFilter) throws IOException, PGPException {
+    LOGGER.trace("findSecretKey(InputStream, KeyFilter<PGPSecretKey>)");
     PGPSecretKey result = null;
+    LOGGER.debug("Wrapping secret key stream in ArmoredInputStream");
     try( InputStream armoredSecretKey = new ArmoredInputStream(secretKey) ) {
+      LOGGER.debug("Creating PGPSecretKeyRingCollection");
       PGPSecretKeyRingCollection keyRingCollection = new PGPSecretKeyRingCollection(armoredSecretKey, new BcKeyFingerprintCalculator());
       result = retrieveSecretKey(keyRingCollection, keyFilter);
     }
@@ -170,6 +188,8 @@ public abstract class BasePGPCommon {
    * @throws IOException
    */
   protected PGPPrivateKey findPrivateKey(InputStream secretKey, final String userId, String password) throws PGPException, IOException {
+    LOGGER.trace("findPrivateKey(InputStream, String, String)");
+    LOGGER.trace("Secret Key: {}, User ID: {}, Password: {}", secretKey == null ? "not set" : "set", userId, password == null ? "not set" : "********");
     return findPrivateKey(secretKey, password, new KeyFilter<PGPSecretKey>() {
 
       @Override
@@ -199,6 +219,8 @@ public abstract class BasePGPCommon {
    * @throws IOException
    */
   protected PGPPrivateKey findPrivateKey(InputStream secretKey, final long keyId, String password) throws PGPException, IOException {
+    LOGGER.trace("findPrivateKey(InputStream, long, String)");
+    LOGGER.trace("Secret Key: {}, Key ID: {}, Password: {}", secretKey == null ? "not set" : "set", keyId, password == null ? "not set" : "********");
     return findPrivateKey(secretKey, password, new KeyFilter<PGPSecretKey>() {
       @Override
       public boolean accept(PGPSecretKey secretKey) {
@@ -221,6 +243,8 @@ public abstract class BasePGPCommon {
    * @throws PGPException
    */
   protected PGPPrivateKey findPrivateKey(InputStream secretKey, String password, KeyFilter<PGPSecretKey> keyFilter) throws IOException, PGPException {
+    LOGGER.trace("findPrivateKey(InputStream, String, KeyFilter<PGPSecretKey>)");
+    LOGGER.trace("Secret Key: {}, Password: {}, KeyFilter: {}", secretKey == null ? "not set" : "set", password == null ? "not set" : "********", keyFilter == null ? "not set" : "set");
     return findPrivateKey(findSecretKey(secretKey, keyFilter), password);
   }
 
@@ -235,9 +259,15 @@ public abstract class BasePGPCommon {
    * @throws PGPException
    */
   protected PGPPrivateKey findPrivateKey(PGPSecretKey pgpSecretKey, String password) throws PGPException {
+    LOGGER.trace("findPrivateKey(PGPSecretKey, String)");
+    LOGGER.trace("Secret Key: {}, Password: {}", pgpSecretKey == null ? "not set" : "set", password == null ? "not set" : "********");
     PGPPrivateKey result = null;
     PBESecretKeyDecryptor pbeSecretKeyDecryptor = new BcPBESecretKeyDecryptorBuilder(new BcPGPDigestCalculatorProvider()).build(password.toCharArray());
+    LOGGER.info("Extracting private key");
     result = pgpSecretKey.extractPrivateKey(pbeSecretKeyDecryptor);
+    if( result == null && LOGGER.isErrorEnabled() ) {
+      LOGGER.error("No private key could be extracted");
+    }
     return result;
   }
 
@@ -251,6 +281,8 @@ public abstract class BasePGPCommon {
    * @return the matching PGP public key
    */
   protected PGPPublicKey findPublicKey(InputStream publicKey, KeyFilter<PGPPublicKey> keyFilter ) {
+    LOGGER.trace("findPublicKey(InputStream, KeyFilter<PGPPublicKey>)");
+    LOGGER.trace("Public Key: {}, Key Filter: {}", publicKey == null ? "not set" : "set", keyFilter == null ? "not set" : "set");
     return retrievePublicKey(readPublicKeyRing(publicKey), keyFilter);
   }
 
@@ -264,11 +296,16 @@ public abstract class BasePGPCommon {
    * @return the matching PGP public or null if none matches
    */
   protected PGPPublicKey retrievePublicKey(PGPPublicKeyRing publicKeyRing, KeyFilter<PGPPublicKey> keyFilter) {
+    LOGGER.trace("retrievePublicKey(PGPPublicKeyRing, KeyFilter<PGPPublicKey>)");
     PGPPublicKey result = null;
     Iterator<PGPPublicKey> publicKeyIterator = publicKeyRing.getPublicKeys();
+    LOGGER.debug("Iterating through public keys in public key ring");
     while( result == null && publicKeyIterator.hasNext() ) {
       PGPPublicKey key = publicKeyIterator.next();
+      LOGGER.info("Found secret key: {}", key.getKeyID());
+      LOGGER.debug("Checking public key with filter");
       if( keyFilter.accept(key) ) {
+        LOGGER.info("Public key {} selected from key ring", key.getKeyID());
         result = key;
       }
     }
@@ -283,17 +320,22 @@ public abstract class BasePGPCommon {
    * @return the public key ring
    */
   protected PGPPublicKeyRing readPublicKeyRing(InputStream publicKey) {
+    LOGGER.trace("readPublicKeyRing(InputStream)");
     PGPPublicKeyRing result = null;
+    LOGGER.debug("Wrapping public key stream in decoder stream");
     try( InputStream decoderStream = PGPUtil.getDecoderStream(publicKey) ) {
+      LOGGER.debug("Creating PGP Object Factory");
       PGPObjectFactory pgpObjectFactory = new PGPObjectFactory(decoderStream, new BcKeyFingerprintCalculator());
       Object o = null;
+      LOGGER.debug("Looking up PGP Public KeyRing");
       while( (o = pgpObjectFactory.nextObject()) != null && result == null ) {
         if( o instanceof PGPPublicKeyRing ) {
+          LOGGER.info("PGP Public KeyRing retrieved");
           result = (PGPPublicKeyRing)o;
         }
       }
     } catch (IOException e) {
-
+      LOGGER.error("{}", e.getMessage());
     }
     return result;
   }
