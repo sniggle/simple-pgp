@@ -5,7 +5,7 @@ package me.sniggle.pgp.crypt;
  */
 public class BaseTest {
 
-  protected static final String BASE_PATH = "src/test/resources/";
+  protected static final String BASE_PATH = "simple-pgp-java/src/test/resources/";
 
   protected BaseTest() {
   }
