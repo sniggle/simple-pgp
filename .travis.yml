@@ -1,0 +1,28 @@
+env:
+  global:
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+   - secure: "eyjJjqB0x066G6YIp9XdkqsorKIrRILwrrMdntRB7roKZF9HvprD9apS+UsQ0x49diE7EVWiQXzQpZ0sq5us7V8qCvyHQmGQbBdfs5BzGspf9rTU+MNX1AvEo77jxT1iqLrgluLdqDGGYCEuyXMz2V22y+SyUJA047wqjAAKfWTqe/A163hdGdVqye/ORG0p60R8kAUh8oSAmTQqav22GpUeVnmuAgq83PWR7dQRG3YaiNIeIVbI0kbVRRIb9ILArZ2Rq6had1iorauNwuLwr4pPb3Hloidyav39kukTworhX5TdOMzyvlVps3nnCGyonIiFTb8PwJlLaEjeeJteUdXe5Lkm4enZi6Zy8rkWlwH2NbgJEMSRm+q75etURv8mIyaFDK/YqEcy3t9Swri/D3ZH85kMxsRTW7WxdKAFDreDtrJRL9sSzCdQzPJrXODppHogaT6rs39lZU39nAJlPh4df2SikpDCl8sCyMr1lETDHCwrEdSlz6PcnvoxZzPFakwBgD0bczGeFFw2CG2MIUhRsibM2+wLJvS35r3DMQWS1K3OQxMNyRc6v7WiRdjLcOBikR9x9WQGMY5g/0P/6So1kdDiIlb87eTkZnDZZMFJN8T+SD+1bKns9PXjg0kNTDwlvfeeSaOTezBUHxrTG8A7bqM7ULNK77FCwXDSyuQ="
+
+language: java
+jdk:
+  - oraclejdk8
+  - oraclejdk7
+  - openjdk7
+
+addons:
+  coverity_scan:
+    project:
+      name: "tuxbox/simple-pgp"
+      description: "A wrapper library making PGP usage in applications simple. Based off of BouncyCastle."
+    notification_email: iulius@sniggle.me
+    build_command_prepend: "mvn clean"
+    build_command:   "mvn -DskipTests=true compile"
+    branch_pattern: coverity_scan
+
+before_install:
+  - pip install --user codecov
+
+after_success:
+  - codecov
+  - bash <(curl -s https://codecov.io/bash)
