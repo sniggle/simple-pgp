@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>me.sniggle</groupId>
   <artifactId>simple-pgp</artifactId>
-  <version>1.1-SNAPSHOT</version>
+  <version>0.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <url>https://github.com/tuxbox/simple-pgp</url>
   <licenses>
