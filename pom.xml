@@ -6,7 +6,7 @@
   <packaging>pom</packaging>
 
   <name>simple-pgp</name>
-  <description>Provides extensions which are supposed to enhance security of Apache HTTPComponents</description>
+  <description>A wrapper library making PGP usage in applications simple. Based off of BouncyCastle.</description>
 
   <url>https://github.com/tuxbox/simple-pgp</url>
   <licenses>
