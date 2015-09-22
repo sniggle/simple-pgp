@@ -35,3 +35,9 @@ the current BouncyCastle libraries for Android.
 ### simple-pgp-java
 This module implements the API of the simple-pgp-api for standard Java applications.
 The implementation is based on the [BouncyCastle](https://www.bouncycastle.org/) libraries.
+
+## Compatibility
+### GPG 2.0.28 on MacOSX
+- Keys were generated with GPG and used by the implementation and vice versa
+- Messages encrypted by the library were decrypted using GPG and vice versa
+- Signatures created by GPG were verified by the library and vice versa
