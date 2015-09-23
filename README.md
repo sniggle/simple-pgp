@@ -10,6 +10,8 @@ PGP implementations in Java.
 [![codecov.io](https://codecov.io/github/tuxbox/simple-pgp/coverage.svg?branch=master)](https://codecov.io/github/tuxbox/simple-pgp?branch=master)
 
 ## Status
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/me.sniggle/simple-pgp/badge.svg)](https://maven-badges.herokuapp.com/maven-central/me.sniggle/simple-pgp)
+
 Currently the library is not ready for production use. It's missing inline documentation and logging outputs.
 Tests have not yet been implemented either. Use with caution as of now.
 
