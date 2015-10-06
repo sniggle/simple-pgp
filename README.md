@@ -10,6 +10,8 @@ PGP implementations in Java.
 [![codecov.io](https://codecov.io/github/tuxbox/simple-pgp/coverage.svg?branch=master)](https://codecov.io/github/tuxbox/simple-pgp?branch=master)
 
 ## Status
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/me.sniggle/simple-pgp/badge.svg)](https://maven-badges.herokuapp.com/maven-central/me.sniggle/simple-pgp)
+
 Currently the library is not ready for production use. It's missing inline documentation and logging outputs.
 Tests have not yet been implemented either. Use with caution as of now.
 
@@ -35,3 +37,9 @@ the current BouncyCastle libraries for Android.
 ### simple-pgp-java
 This module implements the API of the simple-pgp-api for standard Java applications.
 The implementation is based on the [BouncyCastle](https://www.bouncycastle.org/) libraries.
+
+## Compatibility
+### GPG 2.0.28 on MacOSX
+- Keys were generated with GPG and used by the implementation and vice versa
+- Messages encrypted by the library were decrypted using GPG and vice versa
+- Signatures created by GPG were verified by the library and vice versa
