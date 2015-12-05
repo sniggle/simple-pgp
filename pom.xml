@@ -13,13 +13,13 @@
     <license>
       <name>BSD 3-clause license</name>
       <distribution>repo</distribution>
-      <url>https://raw.githubusercontent.com/tuxbox/simple-pgp/master/LICENSE</url>
+      <url>https://raw.githubusercontent.com/sniggle/simple-pgp/master/LICENSE</url>
     </license>
   </licenses>
   <scm>
-    <connection>scm:git:git@github.com:tuxbox/simple-pgp.git</connection>
-    <url>scm:git:git@github.com:tuxbox/simple-pgp.git</url>
-    <developerConnection>scm:git:git@github.com:tuxbox/simple-pgp.git</developerConnection>
+    <connection>scm:git:git@github.com:sniggle/simple-pgp.git</connection>
+    <url>scm:git:git@github.com:sniggle/simple-pgp.git</url>
+    <developerConnection>scm:git:git@github.com:sniggle/simple-pgp.git</developerConnection>
   </scm>
   <developers>
     <developer>
